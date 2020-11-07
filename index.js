@@ -2,7 +2,7 @@
 const isUrl = require('is-url-superb');
 const got = require('got');
 const isScoped = require('is-scoped');
-const configuredRegistryUrl = require('registry-url')();
+const getRegistryUrl = require('registry-url');
 const registryAuthToken = require('registry-auth-token');
 const zip = require('lodash.zip');
 const validate = require('validate-npm-package-name');
@@ -14,8 +14,6 @@ class InvalidNameError extends Error {}
 const npmOrganizationUrl = 'https://www.npmjs.com/org/';
 
 const request = async (name, options) => {
-	const registryUrl = normalizeUrl(options.registryUrl || configuredRegistryUrl);
-
 	const isOrganization = organizationRegex.test(name);
 	if (isOrganization) {
 		name = name.replace(/[@/]/g, '');
@@ -31,9 +29,13 @@ const request = async (name, options) => {
 		throw error;
 	}
 
+	let registryUrl;
 	const isScopedPackage = isScoped(name);
 	if (isScopedPackage) {
+		registryUrl = normalizeUrl(options.registryUrl || getRegistryUrl(name.split('/')[0]));
 		name = name.replace(/\//g, '%2f');
+	} else {
+		registryUrl = normalizeUrl(options.registryUrl || getRegistryUrl());
 	}
 
 	const authInfo = registryAuthToken(registryUrl, {recursive: true});
